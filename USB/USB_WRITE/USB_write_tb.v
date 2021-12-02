@@ -1,62 +1,67 @@
 `timescale 1ns / 1ps
 
-module fpga_tb;
-localparam PERIOD = 8;
+module usb_write_tb;
+    localparam PERIOD = 8;
 
+	// Inputs
+	reg CLKOUT;
+	reg rst_n;
+	reg FLAGD;
+	reg FLAGA;
 
-// Inputs
-reg CLOCK_48;
-reg flagd;
-reg flaga;
+	// Outputs
+	wire SLWR;
+	wire SLRD;
+	wire SLOE;
+	wire IFCLK;
+	wire [1:0] FIFOADR;
 
-// Outputs
-wire [3:0] LED;
-wire slwr;
-wire slrd;
-wire sloe;
-wire ifclk;
-wire [1:0] fifoadr;
-wire [15:0] fd;
+	// Bidirs
+	wire [15:0] FDATA;
 
-// Instantiate the Unit Under Test (UUT)
-usb_wrtie uut (
-	.CLKOUT(CLOCK_48), 
-	.rst_n(1'b1),
-    .FLAGD(flagd),
-    .FLAGA(flaga),
-    .SLWR(slwr),
-    .SLRD(slrd),
-    .SLOE(sloe),
-    .IFCLK(ifclk),
-    .FIFOADR(fifoadr),
-    .FD(fd)
-);
+	// Instantiate the Unit Under Test (UUT)
+	usb_write uut (
+		.CLKOUT(CLKOUT), 
+		.rst_n(rst_n), 
+		.FLAGD(FLAGD), 
+		.FLAGA(FLAGA), 
+		.SLWR(SLWR), 
+		.SLRD(SLRD), 
+		.SLOE(SLOE), 
+		.IFCLK(IFCLK), 
+		.FIFOADR(FIFOADR), 
+		.FDATA(FDATA)
+	);
 
-initial begin
-	// Initialize Inputs
-	CLOCK_48 = 0;
-	// Wait 100 ns for global reset to finish
-	#100;
+	initial begin
+		// Initialize Inputs
+		CLKOUT = 0;
+		rst_n = 1'b1;
+		FLAGD = 0;
+		FLAGA = 0;
+
+		// Wait 100 ns for global reset to finish
+		#100;
         
-	// Add stimulus here
-end
+		// Add stimulus here
 
-always begin
-   CLOCK_48 = 1'b0;
-   #(PERIOD / 2);
-   CLOCK_48 = 1'b1;
-   #(PERIOD / 2);
-end
+	end
+    always begin
+        CLKOUT = 1'b0;
+        #(PERIOD / 2);
+        CLKOUT = 1'b1;
+        #(PERIOD / 2);
+    end
 
-always begin
-    flagd <= 1'b1;
-    flaga <= 1'b0;
-    #(PERIOD * 2);
+    always begin
+        FLAGD <= 1'b1;
+        FLAGA <= 1'b0;
+        #(PERIOD * 2);
 
-    flagd <= 1'b0;
-    flaga <= 1'b1;
-    #(PERIOD * 10);
-end
+        FLAGD <= 1'b0;
+        FLAGA <= 1'b1;
+        #(PERIOD * 10);
+    end
       
 endmodule
 
