@@ -32,6 +32,9 @@ reg next_SLRD;
 // 寄存器保存下一时刻的FIFOADR地址选择
 reg [1:0] next_FIFOADR;
 
+// 记录数据读取/写入次数
+reg counter = 0;
+
 // 将读写信号连接到输出引脚
 assign SLWR = next_SLWR;
 assign SLRD = next_SLRD;
@@ -77,7 +80,7 @@ always @(*) begin
     endcase
 end
 
-// 组合逻辑实现读写信号控制
+// TODO: 组合逻辑实现读写信号控制
 always @(*) begin
     if(current_state == SELECT_READ_FIFO)begin
         
@@ -105,4 +108,10 @@ always@(posedge CLKOUT, negedge rst_n) begin
     end
 end
 
+// 统计读取/写入的字节数
+always@(posedge CLKOUT)begin
+    if(slwr_n == 1'b0)begin
+        counter <= counter + 1;
+    end
+end
 endmodule
