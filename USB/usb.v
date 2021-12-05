@@ -80,12 +80,31 @@ always @(*) begin
     endcase
 end
 
-// TODO: 组合逻辑实现读写信号控制
-always @(*) begin
-    if(current_state == SELECT_READ_FIFO)begin
-        
-    end
-
+// 组合逻辑实现读写信号控制
+always @(negedge IFCLK) begin
+    case (current_state)
+        IDLE:begin
+            // slwr_n <= 1'b1;
+            // slrd_n <= 1'b1;
+            // sloe_n <= 1'b1;
+        end
+        SELECT_READ_FIFO:begin
+            
+        end
+        SELECT_WRITE_FIFO:begin
+            
+        end
+        WRITE_DATA:begin
+            
+        end
+        READ_DATA:begin
+            
+        end
+        CONV:begin
+            
+        end
+        default: 
+    endcase
 end
 
 // 组合逻辑实现 EP2, EP6 的 FIFOADR 选择
