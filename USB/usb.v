@@ -12,16 +12,17 @@ module  usb(
         inout   wire [15: 0]    FD
 );
 
-parameter IDLE = 3'b000;
-parameter SELECT_WRITE_FIFO = 3'b001;
-parameter SELECT_READ_FIFO = 3'b010;
-parameter WRITE_DATA = 3'b011;
-parameter READ_DATA = 3'b100;
+parameter IDLE = 3'b000; // 空闲状态
+parameter SELECT_WRITE_FIFO = 3'b001; // 等待写入信号状态
+parameter SELECT_READ_FIFO = 3'b010; // 等待读取信号状态
+parameter WRITE_DATA = 3'b011; // 写入数据状态
+parameter READ_DATA = 3'b100; // 读取数据状态
+parameter CONV = 3'b101; // 卷积操作状态
 
 reg [2: 0] current_state;
 reg [2: 0] next_state;
 
-// 根据文档，IFCLK需要180反向，让FLXP
+// 根据文档，IFCLK需要180反向，让FX2LP建立数据同步时间
 assign IFCLK = ~CLKOUT;
 
 // 用寄存器保存下一时刻的读写信号
