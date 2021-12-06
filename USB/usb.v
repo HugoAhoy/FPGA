@@ -28,6 +28,7 @@ assign IFCLK = ~CLKOUT;
 // 用寄存器保存下一时刻的读写信号
 reg next_SLWR;
 reg next_SLRD;
+reg next_SLOE;
 
 // 寄存器保存下一时刻的FIFOADR地址选择
 reg [1:0] next_FIFOADR;
@@ -38,6 +39,7 @@ reg counter = 0;
 // 将读写信号连接到输出引脚
 assign SLWR = next_SLWR;
 assign SLRD = next_SLRD;
+assign SLOE = next_SLOE;
 
 // 将endpoint选择信号连接到输出引脚
 assign FIFOADR = next_FIFOADR;
@@ -84,9 +86,9 @@ end
 always @(negedge IFCLK) begin
     case (current_state)
         IDLE:begin
-            // slwr_n <= 1'b1;
-            // slrd_n <= 1'b1;
-            // sloe_n <= 1'b1;
+            // next_SLWR <= 1'b1;
+            // next_SLRD <= 1'b1;
+            // next_SLOE <= 1'b1;
         end
         SELECT_READ_FIFO:begin
             
@@ -103,7 +105,9 @@ always @(negedge IFCLK) begin
         CONV:begin
             
         end
-        default: 
+        default: begin
+            
+        end
     endcase
 end
 
@@ -129,7 +133,7 @@ end
 
 // 统计读取/写入的字节数
 always@(posedge CLKOUT)begin
-    if(slwr_n == 1'b0)begin
+    if(next_SLWR == 1'b0)begin
         counter <= counter + 1;
     end
 end
