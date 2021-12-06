@@ -21,5 +21,6 @@
         },
         { name: "STATE", wave: "=====.=====....", data:["WWR","WR", "WWR","WR","WWR","WR", "WWR","WR","WWR","IDLE"]
         }
-    ]
+    ],
+    head:{tick:0}
 }
