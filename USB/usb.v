@@ -13,15 +13,15 @@ module  usb(
         output                  SLOE,
         output  wire            IFCLK,
         output  wire [ 1: 0]    FIFOADR,
-        inout   wire [15: 0]    FD
+        inout   wire [15: 0]    FDATA
 );
 
-parameter IDLE = 3'b000; // 空闲状态
-parameter SELECT_WRITE_FIFO = 3'b001; // 等待写入信号状态
-parameter SELECT_READ_FIFO = 3'b010; // 等待读取信号状态
-parameter WRITE_DATA = 3'b011; // 写入数据状态
-parameter READ_DATA = 3'b100; // 读取数据状态
-parameter CONV = 3'b101; // 卷积操作状态
+localparam IDLE = 3'b000; // 空闲状态
+localparam SELECT_WRITE_FIFO = 3'b001; // 等待写入信号状态
+localparam SELECT_READ_FIFO = 3'b010; // 等待读取信号状态
+localparam WRITE_DATA = 3'b011; // 写入数据状态
+localparam READ_DATA = 3'b100; // 读取数据状态
+localparam CONV = 3'b101; // 卷积操作状态
 
 reg [2: 0] current_state;
 reg [2: 0] next_state;
