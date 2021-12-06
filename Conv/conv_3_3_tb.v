@@ -85,6 +85,15 @@ module conv_3_3_tb;
                 PATCH[111:96] <= PATCH[111:96]+16'd1;
                 PATCH[127:112] <= PATCH[127:112]+16'd1;
                 PATCH[143:128] <= PATCH[143:128]+16'd1;
+                KERNEL[15:0] <= KERNEL[15:0]+16'd1;
+                KERNEL[31:16] <= KERNEL[31:16]+16'd1;
+                KERNEL[47:32] <= KERNEL[47:32]+16'd1;
+                KERNEL[63:48] <= KERNEL[63:48]+16'd1;
+                KERNEL[79:64] <= KERNEL[79:64]+16'd1;
+                KERNEL[95:80] <= KERNEL[95:80]+16'd1;
+                KERNEL[111:96] <= KERNEL[111:96]+16'd1;
+                KERNEL[127:112] <= KERNEL[127:112]+16'd1;
+                KERNEL[143:128] <= KERNEL[143:128]+16'd1;
         end
         else begin
             counter <= counter + 1'b1;
