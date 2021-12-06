@@ -23,7 +23,7 @@
 // 
 ////////////////////////////////////////////////////////////////////////////////
 
-module conv_tb;
+module conv_3_3_tb;
     localparam PERIOD = 8;
     reg [24 :0] counter = 0;
 
@@ -44,6 +44,13 @@ module conv_tb;
 		.KERNEL(KERNEL), 
 		.RESULT(RESULT)
 	);
+    /*iverilog */
+    initial
+    begin            
+        $dumpfile("wave.vcd");        //生成的vcd文件名称
+        $dumpvars(0, conv_3_3_tb);     //tb模块名称
+    end
+    /*iverilog */
 
 	initial begin
 		// Initialize Inputs
