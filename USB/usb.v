@@ -13,7 +13,10 @@ module  usb(
         output                  SLOE,
         output  wire            IFCLK,
         output  wire [ 1: 0]    FIFOADR,
-        inout   wire [15: 0]    FDATA
+        inout   wire [15: 0]    FDATA,
+        output  wire [2:0]      cState,
+        output  wire [15:0]     WCount,
+        output  wire [15:0]     RCount
 );
 
 localparam IDLE = 3'b000; // 空闲状态
@@ -25,6 +28,9 @@ localparam CONV = 3'b101; // 卷积操作状态
 
 reg [2: 0] current_state;
 reg [2: 0] next_state;
+
+// 输出current_state, 用来验证USB模块的状态转移
+assign cState = current_state;
 
 // 根据文档，IFCLK需要180反向，让FX2LP建立数据同步时间
 assign IFCLK = ~CLKOUT;
@@ -40,6 +46,10 @@ reg [1:0] next_FIFOADR;
 // 记录数据读取/写入次数
 reg [15:0] rcounter = 0;
 reg [15:0] wcounter = 0;
+
+// 输出rcounter, wcounter, 用来验证USB模块字符输入输出情况
+assign RCount = rcounter;
+assign WCount = wcounter;
 
 // 等待卷积核操作4个周期
 reg [3:0] CONV_WAIT = 4'd4;
