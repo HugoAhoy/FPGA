@@ -72,6 +72,14 @@ assign SLOE = next_SLOE;
 // 将endpoint选择信号连接到输出引脚
 assign FIFOADR = next_FIFOADR;
 
+// 连接卷积模块
+conv_3_3 conv(
+    .CLK(CLKOUT),
+    .rst_n(1'b1),
+    .PATCH({MEM[0],MEM[1],MEM[2],MEM[3],MEM[4],MEM[5],MEM[6],MEM[7],MEM[8]}),
+    .KERNEL({MEM[9],MEM[10],MEM[11],MEM[12],MEM[13],MEM[14],MEM[15],MEM[16],MEM[17]}),
+    .RESULT({RES[3],RES[2],RES[1],RES[0]})
+);
 
 // 组合逻辑实现状态机
 always @(*) begin
