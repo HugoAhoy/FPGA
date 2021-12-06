@@ -15,7 +15,9 @@
         },
         { name: "SLRD", wave: "1..0101.....01010"
         },
-        { name: "counter", wave: "=..2.3......4.5.6",data:["0","1","2","3","4","5"]
+        { name: "rcounter", wave: "=..2.3......4.5.6",data:["0","1","2","3","4","5"]
+        },
+        { name: "wcounter", wave: "=................",data:["0"]
         },
         { name: "STATE", wave: "==.====.....=====", data:["IDLE","WRD", "RD","WRD", "RD","WRD","RD","WRD","RD","WRD","RD"]
         }

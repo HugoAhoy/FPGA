@@ -17,7 +17,9 @@
     },
     { name: "SLRD", wave: "010101..........."
     },
-    { name: "counter", wave: "9.8.7............",data:["16","17","18"]
+    { name: "rcounter", wave: "9.8.7............",data:["16","17","18"]
+    },
+    { name: "wcounter", wave: "=................",data:["0"]
     },
     { name: "STATE", wave: "=======...=......", data:["RD","WRD", "RD","WRD", "RD","WRD","CV","WWR"]
     }
