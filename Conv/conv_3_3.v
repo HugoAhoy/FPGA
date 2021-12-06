@@ -44,21 +44,21 @@ module conv_3_3
 	 end
 	 
 	 always @(*) begin 
-	     TEMP_RES[0] <= PIXELS[0]*KERNEL_WEIGHT[0];
-	     TEMP_RES[1] <= PIXELS[1]*KERNEL_WEIGHT[1];
-	     TEMP_RES[2] <= PIXELS[2]*KERNEL_WEIGHT[2];
-	     TEMP_RES[3] <= PIXELS[3]*KERNEL_WEIGHT[3];
-	     TEMP_RES[4] <= PIXELS[4]*KERNEL_WEIGHT[4];
-	     TEMP_RES[5] <= PIXELS[5]*KERNEL_WEIGHT[5];
-	     TEMP_RES[6] <= PIXELS[6]*KERNEL_WEIGHT[6];
-	     TEMP_RES[7] <= PIXELS[7]*KERNEL_WEIGHT[7];
-	     TEMP_RES[8] <= PIXELS[8]*KERNEL_WEIGHT[8];
+	     TEMP_RES[0] = PIXELS[0]*KERNEL_WEIGHT[0];
+	     TEMP_RES[1] = PIXELS[1]*KERNEL_WEIGHT[1];
+	     TEMP_RES[2] = PIXELS[2]*KERNEL_WEIGHT[2];
+	     TEMP_RES[3] = PIXELS[3]*KERNEL_WEIGHT[3];
+	     TEMP_RES[4] = PIXELS[4]*KERNEL_WEIGHT[4];
+	     TEMP_RES[5] = PIXELS[5]*KERNEL_WEIGHT[5];
+	     TEMP_RES[6] = PIXELS[6]*KERNEL_WEIGHT[6];
+	     TEMP_RES[7] = PIXELS[7]*KERNEL_WEIGHT[7];
+	     TEMP_RES[8] = PIXELS[8]*KERNEL_WEIGHT[8];
 	 end
 	 integer i;
 	 always @(*) begin 
         reg_output = 0;
         for(i=0; i < 9; i=i+1)
-            reg_output = reg_output + {32'd0, TEMP_RES[i]};	     
+            reg_output = reg_output + {32'd0, TEMP_RES[i]};
 	 end
 
 endmodule
