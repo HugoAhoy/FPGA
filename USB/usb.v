@@ -1,6 +1,7 @@
 `timescale 1ns/1ps
 `define MAXDATA 16'd18
 `define RESBITS 16'd4
+`define MAXPKG 16'd32
 
 module  usb(  
         input                   CLKOUT,
@@ -43,6 +44,12 @@ reg next_SLOE;
 // 寄存器保存下一状态的FIFOADR地址选择
 reg [1:0] next_FIFOADR;
 
+// 保存输入数据
+reg [15:0] MEM[`MAXPKG-1:0];
+
+// 保存卷积结果
+reg [15:0] RES[3:0];
+
 // 记录数据读取/写入次数
 reg [15:0] rcounter = 0;
 reg [15:0] wcounter = 0;
@@ -50,6 +57,9 @@ reg [15:0] wcounter = 0;
 // 输出rcounter, wcounter, 用来验证USB模块字符输入输出情况
 assign RCount = rcounter;
 assign WCount = wcounter;
+
+// 输出数据
+assign FDATA = (FLAGD == 1'b0 & wcounter > 0 & (current_state == SELECT_WRITE_FIFO| current_state == WRITE_DATA))? RES[wcounter[1:0]-2'b1]:16'hzzzz;
 
 // 等待卷积核操作4个周期
 reg [3:0] CONV_WAIT = 4'd4;
@@ -233,6 +243,13 @@ always@(posedge CLKOUT)begin
             CONV_WAIT <= CONV_WAIT;
         end
     endcase
+end
+
+// 在 READ_DATA 状态开始的那个上升沿读取数据
+always @(posedge CLKOUT) begin
+    if(next_state == READ_DATA)begin
+        MEM[rcounter] <= FDATA;
+    end
 end
 
 endmodule
