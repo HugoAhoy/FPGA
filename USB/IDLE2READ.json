@@ -1,0 +1,23 @@
+{ signal: [
+        { name: "CLKOUT", wave: "pPpP....p...Pp..."
+        },
+        { name: "IFCLK", wave: "p.P.....p...P....",phase:0.5
+        },
+        { name: "DATA", wave: "z.....2.3..z............4.5...6....",phase:0.5,data:["D1","D2","D3","D4","D5","D6"],period:0.5
+        },
+        { name: "ADDR", wave: "=................",data:["EP2(00)"]
+        },
+        { name: "FLAGA", wave: "0.....1.......0........1...........",phase:0.5,period:0.5
+        },
+        { name: "SLOE", wave: "10..............."
+        },
+        { name: "SLWR", wave: "1................"
+        },
+        { name: "SLRD", wave: "1..0101.....01010"
+        },
+        { name: "counter", wave: "=..2.3......4.5.6",data:["0","1","2","3","4","5"]
+        },
+        { name: "STATE", wave: "==.====.....=====", data:["IDLE","WRD", "RD","WRD", "RD","WRD","RD","WRD","RD","WRD","RD"]
+        }
+    ]
+}
