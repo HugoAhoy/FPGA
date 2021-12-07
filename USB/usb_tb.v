@@ -24,6 +24,7 @@ module usb_tb;
 	// Bidirs
 	wire [15:0] FDATA;
 
+    reg [15:0] pseudoData;
 	// Instantiate the Unit Under Test (UUT)
 	usb uut (
 		.CLKOUT(CLKOUT), 
@@ -48,6 +49,7 @@ module usb_tb;
 		FLAGD = 1;
 		FLAGA = 1;
         counter = 0;
+        pseudoData = 0;
 
 		// Wait 100 ns for global reset to finish
 		#100;
@@ -118,10 +120,17 @@ module usb_tb;
         endcase
     end
 
-    // TODO: 模拟数据
+    // 模拟数据被读了一次，然后送出下一个数据
     always @(posedge IFCLK) begin
-        // if()
+        if(FLAGA == 1'b1 & SLRD == 1'b0)begin
+            pseudoData = pseudoData + 1;
+        end
+        else begin
+            pseudoData = pseudoData;
+        end
     end
+
+    assign FDATA =(FIFOADR == 2'b00)? pseudoData:16'hzzzz;
 
 endmodule
 
