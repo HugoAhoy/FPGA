@@ -218,7 +218,7 @@ always@(posedge CLKOUT)begin
         wcounter <= 0;
     end
     else if(next_state == WRITE_DATA)begin
-        wcounter <= wcounter + FLAGD;
+        wcounter <= wcounter + FLAGD; // 如果FLAGD是0，就不会记录已写入数据
     end
     else begin
         wcounter <= wcounter;
@@ -231,7 +231,7 @@ always@(posedge CLKOUT)begin
         rcounter <= 0;
     end
     else if(next_state == READ_DATA)begin
-        rcounter <= rcounter + FLAGA;
+        rcounter <= rcounter + FLAGA; // 如果FLAGA是0，就不会记录已读取数据
     end
     else begin
         rcounter <= rcounter;
