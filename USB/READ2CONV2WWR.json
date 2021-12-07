@@ -1,7 +1,7 @@
 { signal: [
-        { name: "CLKOUT", wave: "pPpP....p...Pp..."
+        { name: "CLKOUT", wave: "pP.....p..Pp....."
         },
-        { name: "IFCLK", wave: "p.P.....p...P....",phase:0.5
+        { name: "IFCLK", wave: "pPpPpPp..........",phase:0.5
         },
         { name: "DATA", wave: "9.8...7...z........................",phase:0.5,data:["D16","D17","D18"],period:0.5
         },
