@@ -48,7 +48,7 @@ reg [1:0] next_FIFOADR;
 reg [15:0] MEM[`MAXPKG-1:0];
 
 // 保存卷积结果
-reg [15:0] RES[3:0];
+wire [15:0] RES[3:0];
 
 // 记录数据读取/写入次数
 reg [15:0] rcounter = 0;
@@ -59,7 +59,7 @@ assign RCount = rcounter;
 assign WCount = wcounter;
 
 // 输出数据
-assign FDATA = (FLAGD == 1'b0 & wcounter > 0 & (current_state == SELECT_WRITE_FIFO| current_state == WRITE_DATA))? RES[wcounter[1:0]-2'b1]:16'hzzzz;
+assign FDATA = (FLAGD == 1'b1 & wcounter > 0 & (current_state == SELECT_WRITE_FIFO| current_state == WRITE_DATA))? RES[wcounter[1:0]-2'b1]:16'hzzzz;
 
 // 等待卷积核操作4个周期
 reg [3:0] CONV_WAIT = 4'd4;
@@ -89,7 +89,7 @@ always @(*) begin
         end
         SELECT_READ_FIFO:begin
             if(rcounter < `MAXDATA)begin
-                if (FLAGA == 1'b0)begin
+                if (FLAGA == 1'b1)begin
                     next_state = READ_DATA;
                 end
                 else begin
@@ -113,11 +113,11 @@ always @(*) begin
         end
         SELECT_WRITE_FIFO:begin
             if(wcounter < `RESBITS)begin
-                if (FLAGA == 1'b0)begin
-                    next_state = READ_DATA;
+                if (FLAGA == 1'b1)begin
+                    next_state = WRITE_DATA;
                 end
                 else begin
-                    next_state = SELECT_READ_FIFO;
+                    next_state = SELECT_WRITE_FIFO;
                 end
             end
             else begin
