@@ -217,8 +217,8 @@ always@(posedge CLKOUT)begin
     if(current_state == IDLE)begin
         wcounter <= 0;
     end
-    else if(next_SLWR == 1'b0)begin
-        wcounter <= wcounter + 1;
+    else if(next_state == WRITE_DATA)begin
+        wcounter <= wcounter + FLAGD;
     end
     else begin
         wcounter <= wcounter;
@@ -230,8 +230,8 @@ always@(posedge CLKOUT)begin
     if(current_state == IDLE)begin
         rcounter <= 0;
     end
-    else if(next_SLWR == 1'b0)begin
-        rcounter <= rcounter + 1;
+    else if(next_state == READ_DATA)begin
+        rcounter <= rcounter + FLAGA;
     end
     else begin
         rcounter <= rcounter;
