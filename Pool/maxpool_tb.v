@@ -8,10 +8,10 @@ module maxpool_tb;
 	// Inputs
 	reg CLK;
 	reg rst_n;
-	reg [64*4-1:0] PATCH;
+	reg [16*4-1:0] PATCH;
 
 	// Outputs
-	wire [63:0] RESULT;
+	wire [15:0] RESULT;
 
 	// Instantiate the Unit Under Test (UUT)
 	maxpool uut (
@@ -20,19 +20,12 @@ module maxpool_tb;
 		.PATCH(PATCH), 
 		.RESULT(RESULT)
 	);
-    /*iverilog */
-    initial
-    begin            
-        $dumpfile("wave.vcd");        //生成的vcd文件名称
-        $dumpvars(0, conv_3_3_tb);     //tb模块名称
-    end
-    /*iverilog */
 
 	initial begin
 		// Initialize Inputs
 		CLK = 0;
 		rst_n = 1'b1;
-        PATCH = {64'd0,64'd1,64'd2,64'd3};
+        PATCH = {16'd0,16'd1,16'd2,16'd3};
 		// Wait 100 ns for global reset to finish
 		#100;
         
@@ -50,10 +43,10 @@ module maxpool_tb;
     always @(posedge CLK) begin
         if (counter == `DELAY) begin
                 counter <= 0;
-                PATCH[63:0] <= PATCH[255:192]+64'd10;
-                PATCH[127:64] <= PATCH[63:0]+64'd10;
-                PATCH[191:128] <= PATCH[127:64]+64'd10;
-                PATCH[255:192] <= PATCH[191:128]+64'd10;
+                PATCH[15:0] <= PATCH[63:48]+16'd10;
+                PATCH[31:16] <= PATCH[15:0]+16'd10;
+                PATCH[47:32] <= PATCH[31:16]+16'd10;
+                PATCH[63:48] <= PATCH[47:32]+16'd10;
         end
         else begin
             counter <= counter + 1'b1;
