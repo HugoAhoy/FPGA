@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-module  usb_wrtie(
+module usb_write(
         input                   CLKOUT,
         input                   rst_n,
         //usb interface  
@@ -11,10 +11,11 @@ module  usb_wrtie(
         output                  SLOE,
         output  wire            IFCLK,
         output  wire [ 1: 0]    FIFOADR,
+		output  wire [ 3: 0]    LED,
+		output  wire [ 2: 0]    cstate, 
         inout   wire [15: 0]    FDATA
-);
-
-    parameter IDLE = 3'b000;
+    );
+    parameter IDLE = 3'b100;
     parameter WRITE_DATA = 3'b011;
 
     reg [2: 0] current_state;
@@ -32,27 +33,33 @@ module  usb_wrtie(
     reg [1:0] next_FIFOADR;
 
     // 寄存器保存下一时刻的数据信号
-    reg [15:0] data;
+    // reg [15:0] data;
 
     // 寄存器记录当前输入
-    reg [8:0] cnt = 0;
+    reg [15:0] cnt = 0;
 
     // 将读写信号连接到输出引脚
     assign SLWR = next_SLWR;
     assign SLRD = next_SLRD;
     assign SLOE = next_SLOE;
+	 
+    // 将状态连接到LED灯
+    assign LED[2:0] = next_state;
+    assign LED[3] = FLAGD;
+    assign cstate = current_state;
 
     // 将endpoint选择信号连接到输出引脚
     assign FIFOADR = next_FIFOADR;
 
     // 将数据连接到输出引脚
-    assign FDATA = (next_state == WRITE_DATA)? data:16'hzzzz;
+    assign FDATA = (next_state == WRITE_DATA)? {8'd0,cnt[7:0]}:16'hzzzz;
+    // assign FDATA = (next_state == WRITE_DATA)? data:16'hzzzz;
 
     // 组合逻辑实现状态机
     always @(*) begin
         case(current_state)
             IDLE:begin
-                if(FLAGD == 1'b0)begin
+                if(FLAGD == 1'b1)begin
                     next_state = WRITE_DATA;
                 end
                 else begin
@@ -60,7 +67,7 @@ module  usb_wrtie(
                 end
             end
             WRITE_DATA:begin
-                if(FLAGD == 1'b1)begin
+                if(FLAGD == 1'b0)begin
                     next_state = IDLE;
                 end
                 else begin
@@ -99,11 +106,11 @@ module  usb_wrtie(
     end
 
     // 时序逻辑实现数据的输出
-    always @(posedge CLKOUT) begin
-        if(next_state == WRITE_DATA)begin
-            data <= {cnt[7:0],8'h00};
-        end
-    end
+    // always @(posedge CLKOUT) begin
+    //     if(current_state == WRITE_DATA)begin
+    //         data <= {8'h00,cnt[7:0]};
+    //     end
+    // end
 
     // 在每次时候上升沿控制自动机状态转换
     always@(posedge CLKOUT, negedge rst_n) begin
@@ -122,11 +129,11 @@ module  usb_wrtie(
         // else if(slwr_n == 1'b0)
         // 	data_out1 <= data_out1 + 16'd1;
         if(next_state == WRITE_DATA)begin
-            cnt <= cnt + 9'b1;
+            cnt <= cnt + 16'b1;
         end
         else begin
-            cnt <= cnt + 9'b0;
+            cnt <= cnt + 16'b0;
         end
-    end		
+    end
 
 endmodule

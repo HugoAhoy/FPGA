@@ -15,6 +15,8 @@ module usb_write_tb;
 	wire SLOE;
 	wire IFCLK;
 	wire [1:0] FIFOADR;
+	wire [3:0] LED; 
+	wire [2:0] cstate;
 
 	// Bidirs
 	wire [15:0] FDATA;
@@ -29,6 +31,8 @@ module usb_write_tb;
 		.SLRD(SLRD), 
 		.SLOE(SLOE), 
 		.IFCLK(IFCLK), 
+		.LED(LED), 
+		.cstate(cstate), 
 		.FIFOADR(FIFOADR), 
 		.FDATA(FDATA)
 	);
