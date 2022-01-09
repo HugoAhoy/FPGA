@@ -13,24 +13,29 @@ module usb_write(
         output  wire [ 1: 0]    FIFOADR,
 		output  wire [ 3: 0]    LED,
 		output  wire [ 2: 0]    cstate, 
+		output  wire            pktend, 
         inout   wire [15: 0]    FDATA
     );
+    parameter SEND_PKTEND = 3'b010;
     parameter IDLE = 3'b100;
     parameter WRITE_DATA = 3'b011;
 
-    reg [2: 0] current_state;
+    reg [2: 0] current_state = IDLE;
     reg [2: 0] next_state;
 
     // 根据文档，IFCLK需要180反向，让FX2LP建立数据同步时间
     assign IFCLK = ~CLKOUT;
 
     // 用寄存器保存下一时刻的读写信号
-    reg next_SLWR;
-    reg next_SLRD;
-    reg next_SLOE;
+    reg next_SLWR = 1'b1;
+    reg next_SLRD = 1'b1;
+    reg next_SLOE = 1'b1;
+
+    // pktend 信号
+    reg next_pktend = 1'b1;
 
     // 寄存器保存下一时刻的FIFOADR地址选择
-    reg [1:0] next_FIFOADR;
+    reg [1:0] next_FIFOADR = 2'b10;
 
     // 寄存器保存下一时刻的数据信号
     // reg [15:0] data;
@@ -42,7 +47,10 @@ module usb_write(
     assign SLWR = next_SLWR;
     assign SLRD = next_SLRD;
     assign SLOE = next_SLOE;
-	 
+
+    // 将pkt信号连接到输出引脚
+    assign pktend = next_pktend;
+
     // 将状态连接到LED灯
     assign LED[2:0] = next_state;
     assign LED[3] = FLAGD;
@@ -67,6 +75,17 @@ module usb_write(
                 end
             end
             WRITE_DATA:begin
+                if (cnt[3:0] == 4'd15)begin
+                    next_state = SEND_PKTEND;
+                end
+                else if(FLAGD == 1'b0)begin
+                    next_state = IDLE;
+                end
+                else begin
+                    next_state = WRITE_DATA;
+                end
+            end
+            SEND_PKTEND:begin
                 if(FLAGD == 1'b0)begin
                     next_state = IDLE;
                 end
@@ -82,16 +101,26 @@ module usb_write(
 
     // TODO: 组合逻辑实现读写信号控制
     always @(*) begin
-        if(current_state == WRITE_DATA)begin
-            next_SLWR = 1'b0;
-            next_SLRD = 1'b1;
-            next_SLOE = 1'b1;
-        end
-        else begin
-            next_SLWR = 1'b1;
-            next_SLRD = 1'b1;
-            next_SLOE = 1'b1;
-        end
+        case(current_state)
+            WRITE_DATA:begin
+                next_SLWR = 1'b0;
+                next_SLRD = 1'b1;
+                next_SLOE = 1'b1;
+                next_pktend = 1'b1;
+            end
+            SEND_PKTEND:begin
+                next_SLWR = 1'b0;
+                next_SLRD = 1'b1;
+                next_SLOE = 1'b1;
+                next_pktend = 1'b0;                
+            end
+            default:begin
+                next_SLWR = 1'b1;
+                next_SLRD = 1'b1;
+                next_SLOE = 1'b1;
+                next_pktend = 1'b1;
+            end
+        endcase
     end
 
     // 组合逻辑实现 EP2, EP6 的 FIFOADR 选择
