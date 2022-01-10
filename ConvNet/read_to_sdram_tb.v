@@ -35,7 +35,9 @@ module read_to_sdram_tb;
 	wire [15:0] FDATA;
 
     reg [15:0] cnt = 0;
-    assign FDATA = (FLAGA == 1'b1) ? cnt:16'hz;
+    reg [15:0] data_cnt = 0;
+
+    assign FDATA = (FLAGA == 1'b1) ? data_cnt:16'hz;
 
     // pseudo sdram start
     reg [1:0] sdram_cnt = 2'd0;
@@ -170,9 +172,16 @@ module read_to_sdram_tb;
         #(PERIOD / 2);
     end
 
-    always @(posedge CLKOUT) begin
+    always @(posedge IFCLK) begin
+        if (SLRD == 1'b0)begin
+		      data_cnt <= data_cnt + 16'd1;
+		  end
+    end
+	 
+    always @(posedge IFCLK) begin
         cnt <= cnt + 16'd1;
     end
+	 
     always @(*) begin
         if(cnt < 3)begin
             FLAGA = 1'b0;

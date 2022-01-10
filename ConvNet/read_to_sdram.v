@@ -114,12 +114,7 @@ module read_to_sdram(
                 end
             end
             READ_DATA:begin
-                if (FLAGA == 1'b1)begin
-                    next_state = WRITE_TO_SDRAM;
-                end
-                else begin
-                    next_state = SELECT_READ_FIFO;
-                end
+                next_state = WRITE_TO_SDRAM;
             end
             WRITE_TO_SDRAM:begin
                 if(sdram_ack == 1'b1)begin
