@@ -174,7 +174,7 @@ module read_to_sdram_tb;
         cnt <= cnt + 16'd1;
     end
     always @(*) begin
-        if(FDATA < 3)begin
+        if(cnt < 3)begin
             FLAGA = 1'b0;
         end
         else begin

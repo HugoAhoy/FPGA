@@ -61,7 +61,7 @@ module read_to_sdram(
     reg [31:0] data_n;
 
     // 寄存器记录当前输入
-    reg [15:0] cnt;
+    reg [15:0] cnt = 16'd0;
 
     // 将读写信号连接到输出引脚
     assign SLWR = next_SLWR;
@@ -111,7 +111,7 @@ module read_to_sdram(
                 end
             end
             READ_DATA:begin
-                if (FLAGA == 1'b0)begin
+                if (FLAGA == 1'b1)begin
                     next_state = WRITE_TO_SDRAM;
                 end
                 else begin
@@ -192,12 +192,14 @@ module read_to_sdram(
 
     // 统计读取/写入数据字节数
     always@(posedge CLKOUT)begin
-        if(current_state == READ_DATA)begin
-            if(FLAGA)begin            
-                cnt <= cnt + 16'b1;
-            end
-            DATA <= FDATA;
+        if((next_state == SELECT_READ_FIFO) &&(current_state == WRITE_TO_SDRAM))begin
+            cnt <= cnt + 16'b1;
         end
+		  else if(next_state == READ_DATA) begin
+		      if (FLAGA == 1'b1) begin
+		          DATA <= FDATA;
+				end
+		  end
     end
 
     // TODO:sdram相关信号的输出
@@ -206,7 +208,7 @@ module read_to_sdram(
             WRITE_TO_SDRAM:begin
                 stb_n = 1'b1; // 选通
                 cyc_n = 1'b1; // 总线周期有效
-                addr_n = {16'd0,cnt-16'b1}; // 地址
+                addr_n = {16'd0,cnt}; // 地址
                 data_n = {16'd0,DATA};
                 sel_n = 4'b0011;
                 we_n = 1'b1;
@@ -221,5 +223,4 @@ module read_to_sdram(
             end 
         endcase
     end
-
 endmodule
