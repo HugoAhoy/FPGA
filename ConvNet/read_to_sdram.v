@@ -84,6 +84,9 @@ module read_to_sdram(
     assign addr_i = addr_n;
     assign data_i = data_n;
 
+    // 将read_ack连接到输出引脚
+    assign read_ack = next_read_ack;
+
     // 将数据连接到输出引脚
     // assign FDATA = (next_state == WRITE_DATA)? data:16'hzzzz;
 
