@@ -10,8 +10,8 @@ module read_to_sdram_tb;
 
     // sdram wishbone inputs
     reg [31:0] data_o;
-    reg [31:0] stall_o;
-    reg [31:0] sdram_ack;
+    reg stall_o;
+    reg sdram_ack;
 
 	// Outputs
 	wire SLWR;
@@ -36,6 +36,95 @@ module read_to_sdram_tb;
 
     reg [15:0] cnt = 0;
     assign FDATA = (FLAGA == 1'b1) ? cnt:16'hz;
+
+    // pseudo sdram start
+    reg [1:0] sdram_cnt = 2'd0;
+    reg [31:0] sdram [119:0]; // pseudo sdram的存储空间
+    localparam S_WAIT = 4'b0000;
+    localparam S_CYC = 4'b0001;
+    localparam S_STB = 4'b0010;
+    localparam S_ACK = 4'b0011;
+
+    reg [3:0] s_current = S_WAIT;
+
+    // 状态转移
+    always @(posedge CLKOUT) begin
+        case (s_current)
+            S_WAIT:begin
+                if(cyc_i == 1'b1)begin
+                    s_current <= S_CYC;
+                end
+                else begin
+                    s_current <= S_WAIT;
+                end
+            end
+            S_CYC:begin
+                if(cyc_i == 1'b1)begin
+                    if (stb_i == 1'b1)begin
+                        s_current <= S_STB;
+                    end
+                    else begin
+                        s_current <= S_CYC;
+                    end
+                end
+                else begin // 如果cyc没有持续有效，则总线无效
+                    s_current <= S_WAIT;
+                end
+            end
+            S_STB:begin
+                if(cyc_i == 1'b1)begin
+                    if(sdram_cnt == 2'd3)begin
+                        s_current <= S_ACK;
+                        sdram_cnt <= 2'd0;
+                    end
+                    else begin
+                        sdram_cnt <= sdram_cnt + 2'd1;
+                    end
+                end
+                else begin // 如果cyc没有持续有效，则总线无效
+                    s_current <= S_WAIT;
+                end
+            end
+            S_ACK:begin
+                if(cyc_i == 1'b1)begin
+                    s_current <= S_ACK;
+                end
+                else begin // 如果cyc没有持续有效，则总线无效
+                    s_current <= S_WAIT;
+                end
+            end
+            default: 
+                s_current <= S_WAIT;
+        endcase
+    end
+
+    // sdram 输出信号
+    always @(posedge CLKOUT) begin
+        case (s_current)
+            S_STB:begin
+                if((we_i == 1'b1)&&(sdram_cnt == 2'd3)) begin
+                    sdram[addr_i[6:0]] <= data_i;
+                end
+                data_o <= 32'hz;
+                sdram_ack <= 1'b0;
+                stall_o <= 1'b0;
+            end 
+            S_ACK:begin
+                if(we_i == 1'b0)begin
+                    data_o <= sdram[addr_i[6:0]];
+                end
+                sdram_ack <= 1'b1;
+                stall_o <= 1'b0;
+            end
+            default: begin
+                data_o <= 32'hz;
+                sdram_ack <= 1'b0;
+                stall_o <= 1'b0;
+            end
+        endcase
+    end
+
+    // pseudo sdram end
 
 	// Instantiate the Unit Under Test (UUT)
 	read_to_sdram uut (
