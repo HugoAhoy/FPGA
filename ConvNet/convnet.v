@@ -13,6 +13,9 @@ module convnet(
         output                  SLOE,
         output  wire            IFCLK,
         inout [15:0]            FDATA,
+        // for debug
+        output [3:0]            cstate,
+        output [16*9-1:0]       KERNELS_d,
         // sdram Wishbone Interface
         input  [31:0]           data_o,
         input                   stall_o,
@@ -45,27 +48,31 @@ module convnet(
     reg [3:0] current_state = READ_TO_SDRAM;
     reg [3:0] next_state;
 
+    // for debug
+    assign cstate = current_state;
+    assign KERNELS_d = {KERNELS[0],KERNELS[1],KERNELS[2],KERNELS[3],KERNELS[4],KERNELS[5],KERNELS[6],KERNELS[7],KERNELS[8]};
+
     reg [15:0] KERNELS[8:0];
     reg [15:0] PATCHES[8:0];
-    reg [15:0] CONV_RESULT;
-    reg [15:0] POOL_RESULT;
+    wire [15:0] CONV_RESULT;
+    wire [15:0] POOL_RESULT;
 
-    reg read_ack; // 标志read_to_sdram 是否完成
+    wire read_ack; // 标志read_to_sdram 是否完成
 
     // read_to_sdram 与 usb 相关的输出信号
-    reg read_sdram_slrd;
-    reg read_sdram_sloe;
-    reg read_sdram_slwr;
-    reg [1:0] read_sdram_fifoadr;
-    reg [15:0] read_sdram_fdata;
+    wire read_sdram_slrd;
+    wire read_sdram_sloe;
+    wire read_sdram_slwr;
+    wire [1:0] read_sdram_fifoadr;
+    wire [15:0] read_sdram_fdata;
 
     // read_to_sdram 与 sdram 相关的输出信号
-    reg [31:0] read_sdram_data_i;
-    reg read_sdram_stb_i;
-    reg read_sdram_we_i;
-    reg [3:0] read_sdram_sel_i;
-    reg read_sdram_cyc_i;
-    reg [31:0] read_sdram_addr_i;
+    wire [31:0] read_sdram_data_i;
+    wire read_sdram_stb_i;
+    wire read_sdram_we_i;
+    wire [3:0] read_sdram_sel_i;
+    wire read_sdram_cyc_i;
+    wire [31:0] read_sdram_addr_i;
 
     // convnet 与 usb 相关的输出信号
     reg convnet_slrd;
@@ -138,6 +145,7 @@ module convnet(
     read_to_sdram readsdrammodule(
         .CLKOUT(CLK),
         .rst_n(rst_n),
+        .IFCLK(IFCLK),
         .FLAGA(FLAGA),
         .SLWR(read_sdram_slwr),
         .SLRD(read_sdram_slrd),
@@ -244,6 +252,22 @@ module convnet(
         end
     end
 
+    // 组合逻辑根据状态给usb输出赋值
+    always @(*) begin
+        if(current_state == READ_TO_SDRAM)begin
+            out_slwr = read_sdram_slwr;
+            out_sloe = read_sdram_sloe;
+            out_slrd = read_sdram_slrd;
+            out_fifoadr = read_sdram_fifoadr;
+        end
+        else begin
+            out_slwr = convnet_slwr;
+            out_sloe = convnet_sloe;
+            out_slrd = convnet_slrd;
+            out_fifoadr = convnet_fifoadr;
+        end
+    end
+
     // sdram 信号
     always @(*) begin
         case(current_state)
@@ -253,8 +277,8 @@ module convnet(
                     convnet_cyc_i=1'b0;
                 end
                 else begin
-                    convnet_stb_i=1'b0;
-                    convnet_cyc_i=1'b0;
+                    convnet_stb_i=1'b1;
+                    convnet_cyc_i=1'b1;
                 end
                 convnet_data_i= 32'hz;
                 convnet_we_i=1'b0;
