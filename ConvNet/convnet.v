@@ -41,6 +41,7 @@ module convnet(
     localparam CONV = 4'b1000;
     localparam MAXPOOL = 4'b1001;
     localparam WRITE_TO_USB = 4'b1010;
+    localparam END = 4'b1011;
     // localparam READ_IDLE = 4'b0110;
     // localparam READ_DATA = 4'b0111;
     // localparam WRITE_IDLE = 4'b1000;
@@ -251,11 +252,21 @@ module convnet(
             end 
             // SECOND_CONV
             SECOND_CONV:begin
-                next_state = SECOND_CONV;
+                if (idx_i > SECOND_CONV_BORDER) begin
+                    next_state = SECOND_POOL;
+                end
+                else begin
+                    next_state = GATHER_PATCH;
+                end
             end 
             // SECOND_POOL
             SECOND_POOL:begin
-                
+                if (idx_i > SECOND_POOL_BORDER) begin
+                    next_state = WRITE_TO_USB; // 将结果写回USB
+                end
+                else begin
+                    next_state = GATHER_POOL;
+                end                
             end 
             // GATHER_PATCH
             GATHER_PATCH:begin
@@ -319,7 +330,7 @@ module convnet(
             end 
             // WRITE_TO_USB
             WRITE_TO_USB:begin
-                
+                next_state = WRITE_TO_USB;
             end 
             default: begin
 
@@ -530,10 +541,32 @@ module convnet(
                         idx_j <= idx_j + 5'd1;
                     end
                 end
-                // TODO: else if (next_state == SECOND_CONV)
+                else if (next_state == SECOND_CONV) begin
+                    if(idx_j == SECOND_CONV_BORDER) begin
+                        idx_i <= idx_i + 5'd1;
+                        idx_j <= 5'd0;
+                    end
+                    else begin
+                        idx_j <= idx_j + 5'd1;
+                    end
+                end
             end 
             FIRST_CONV: begin
                 if(next_state == FIRST_POOL) begin
+                    // 重置 idx_i, idx_j 和 patch_idx
+                    idx_i <= 5'd0;
+                    idx_j <= 5'd0;
+                end
+            end
+            FIRST_POOL: begin
+                if(next_state == GATHER_KERNEL) begin
+                    // 重置 idx_i, idx_j 和 patch_idx
+                    idx_i <= 5'd0;
+                    idx_j <= 5'd0;
+                end
+            end
+            SECOND_CONV: begin
+                if(next_state == SECOND_POOL) begin
                     // 重置 idx_i, idx_j 和 patch_idx
                     idx_i <= 5'd0;
                     idx_j <= 5'd0;
@@ -549,7 +582,15 @@ module convnet(
                         idx_j <= idx_j + 5'd2;
                     end
                 end
-                // TODO: else if (next_state == SECOND_POOL)
+                else if (next_state == SECOND_POOL) begin
+                    if(idx_j == SECOND_POOL_BORDER) begin
+                        idx_i <= idx_i + 5'd2;
+                        idx_j <= 5'd0;
+                    end
+                    else begin
+                        idx_j <= idx_j + 5'd2;
+                    end                    
+                end
             end
             default: begin
                 
