@@ -16,6 +16,7 @@ module convnet(
         // for debug
         output [3:0]            cstate,
         output [16*9-1:0]       KERNELS_d,
+        output [16*9-1:0]       PATCHES_d,
         // sdram Wishbone Interface
         input  [31:0]           data_o,
         input                   stall_o,
@@ -45,12 +46,63 @@ module convnet(
     // localparam WRITE_IDLE = 4'b1000;
     // localparam WRITE_DATA = 4'b1000;
 
+    // 定义idx边界
+    localparam FIRST_CONV_BORDER = 5'd8;
+    localparam SECOND_CONV_BORDER = 5'd2;
+    localparam FIRST_POOL_BORDER = 5'd8;
+    localparam SECOND_POOL_BORDER = 5'd2;
+
+    // 卷积bias
+    reg [1:0] conv_bias_i[8:0];
+    reg [1:0] conv_bias_j[8:0];
+
+    // 池化bias
+    reg [1:0] pool_bias_i[3:0];
+    reg [1:0] pool_bias_j[3:0];
+
+    initial begin
+        conv_bias_i[0] = 2'd0;
+        conv_bias_i[1] = 2'd0;
+        conv_bias_i[2] = 2'd0;
+        conv_bias_i[3] = 2'd1;
+        conv_bias_i[4] = 2'd1;
+        conv_bias_i[5] = 2'd1;
+        conv_bias_i[6] = 2'd2;
+        conv_bias_i[7] = 2'd2;
+        conv_bias_i[8] = 2'd2;
+
+        conv_bias_j[0] = 2'd0;
+        conv_bias_j[1] = 2'd1;
+        conv_bias_j[2] = 2'd2;
+        conv_bias_j[3] = 2'd0;
+        conv_bias_j[4] = 2'd1;
+        conv_bias_j[5] = 2'd2;
+        conv_bias_j[6] = 2'd0;
+        conv_bias_j[7] = 2'd1;
+        conv_bias_j[8] = 2'd2;
+
+        pool_bias_i[0] = 2'd0;
+        pool_bias_i[1] = 2'd0;
+        pool_bias_i[2] = 2'd1;
+        pool_bias_i[3] = 2'd1;
+
+        pool_bias_j[0] = 2'd0;
+        pool_bias_j[1] = 2'd1;
+        pool_bias_j[2] = 2'd0;
+        pool_bias_j[3] = 2'd1;
+    end
+
+    // 初始patch 左上角的idx
+    reg [4:0] idx_i = 5'd0;
+    reg [4:0] idx_j = 5'd0;
+
     reg [3:0] current_state = READ_TO_SDRAM;
     reg [3:0] next_state;
 
     // for debug
     assign cstate = current_state;
     assign KERNELS_d = {KERNELS[0],KERNELS[1],KERNELS[2],KERNELS[3],KERNELS[4],KERNELS[5],KERNELS[6],KERNELS[7],KERNELS[8]};
+    assign PATCHES_d = {PATCHES[0],PATCHES[1],PATCHES[2],PATCHES[3],PATCHES[4],PATCHES[5],PATCHES[6],PATCHES[7],PATCHES[8]};
 
     reg [15:0] KERNELS[8:0];
     reg [15:0] PATCHES[8:0];
@@ -123,7 +175,9 @@ module convnet(
     reg LAYER=0;
     reg [4:0] kernel_idx=5'd0;
     reg [4:0] kernel_bias = 5'd0;
-    reg [2:0] kernel_cyc_cnt = 3'd0;
+    reg [2:0] kernel_cyc_cnt = 3'd0; // GATHER_KERNEL 时候控制sdram信号的counter
+    reg [3:0] patch_idx = 4'd0;
+    reg [2:0] patch_cyc_cnt = 3'd0;
 
     // 例化 conv
     conv_3_3 convmodule(
@@ -178,7 +232,12 @@ module convnet(
             end
             // FIRST_CONV
             FIRST_CONV:begin
-                next_state = FIRST_CONV;
+                if ((idx_i == FIRST_CONV_BORDER)&&(idx_j == FIRST_CONV_BORDER))begin
+                    next_state = FIRST_POOL;
+                end
+                else begin
+                    next_state = GATHER_PATCH;
+                end
             end 
             // FIRST_POOL
             FIRST_POOL:begin
@@ -194,12 +253,22 @@ module convnet(
             end 
             // GATHER_PATCH
             GATHER_PATCH:begin
-                
+                if ((patch_idx == 4'd8)&&(patch_cyc_cnt == 3'd3))begin
+                    next_state = CONV;
+                end
+                else begin
+                    next_state = GATHER_PATCH;
+                end
             end 
             // GATHER_KERNEL
             GATHER_KERNEL:begin
-                if ((kernel_idx == 5'd8)&&(kernel_cyc_cnt == 3'd3))begin
-                    next_state = FIRST_CONV;
+                if ((kernel_idx == 4'd8)&&(kernel_cyc_cnt == 3'd3))begin
+                    if(LAYER == 1'b0)begin
+                        next_state = FIRST_CONV;
+                    end
+                    else begin
+                        next_state = SECOND_CONV;
+                    end
                 end
                 else begin
                     next_state = GATHER_KERNEL;
@@ -211,7 +280,7 @@ module convnet(
             end 
             // CONV
             CONV:begin
-                
+                next_state = CONV;
             end 
             // MAXPOOL
             MAXPOOL:begin
@@ -285,6 +354,28 @@ module convnet(
                 convnet_sel_i=4'b0011;
                 convnet_addr_i= {27'd0,kernel_bias}+{27'd0,kernel_idx};
             end
+            GATHER_PATCH:begin
+                if(patch_cyc_cnt == 3'd3)begin
+                    convnet_stb_i=1'b0;
+                    convnet_cyc_i=1'b0;
+                end
+                else begin
+                    convnet_stb_i=1'b1;
+                    convnet_cyc_i=1'b1;
+                end
+                convnet_data_i= 32'hz;
+                convnet_we_i=1'b0;
+                convnet_sel_i=4'b0011;
+                convnet_addr_i= 32'd18+({27'd0,idx_i} + {30'd0,conv_bias_i[patch_idx]})*32'd10+({27'd0,idx_j} + {30'd0,conv_bias_j[patch_idx]});
+            end
+            default: begin
+                convnet_stb_i=1'b0;
+                convnet_cyc_i=1'b0;
+                convnet_data_i= 32'hz;
+                convnet_we_i=1'b0;
+                convnet_sel_i=4'b0000;
+                convnet_addr_i= 32'd0;
+            end
         endcase
     end
 
@@ -300,6 +391,20 @@ module convnet(
                     kernel_cyc_cnt <= kernel_cyc_cnt+sdram_ack;
                 end
             end 
+            GATHER_PATCH:begin
+                if(patch_cyc_cnt == 3'd3)begin
+                    patch_cyc_cnt <= 0;
+                    if (patch_idx == 4'd8)begin
+                        patch_idx <= 4'd0;
+                    end
+                    else begin
+                        patch_idx <= patch_idx + 4'd1;
+                    end
+                end
+                else begin
+                    patch_cyc_cnt <= patch_cyc_cnt+sdram_ack;
+                end
+            end 
             default: begin
                 
             end
@@ -311,6 +416,11 @@ module convnet(
             GATHER_KERNEL: begin
                 if(kernel_cyc_cnt == 3'd1) begin
                     KERNELS[kernel_idx[3:0]] <= data_o[15:0];
+                end
+            end
+            GATHER_PATCH:begin
+                if(patch_cyc_cnt == 3'd1) begin
+                    PATCHES[patch_idx[3:0]] <= data_o[15:0];
                 end
             end
             default: begin

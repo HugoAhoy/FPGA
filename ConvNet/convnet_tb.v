@@ -22,7 +22,11 @@ module convnet_tb;
     wire SLRD;
     wire SLOE;
     wire IFCLK;
+	 
+	 // output for debug
     wire [3:0] cstate;
+	wire [16*9-1:0] kernels_d;
+	wire [16*9-1:0] patches_d;
 
     // sdram wishbone outputs
     wire stb_i;
@@ -144,6 +148,8 @@ module convnet_tb;
         .IFCLK(IFCLK), 
         .FDATA(FDATA), 
         .cstate(cstate), 
+		.KERNELS_d(kernels_d), 
+        .PATCHES_d(patches_d), 
         .data_o(data_o), 
         .stall_o(stall_o), 
         .sdram_ack(sdram_ack), 
