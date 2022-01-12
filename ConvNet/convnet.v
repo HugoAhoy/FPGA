@@ -178,6 +178,7 @@ module convnet(
     reg [2:0] kernel_cyc_cnt = 3'd0; // GATHER_KERNEL 时候控制sdram信号的counter
     reg [3:0] patch_idx = 4'd0;
     reg [2:0] patch_cyc_cnt = 3'd0;
+    reg [2:0] gather_pool_cyc_cnt = 3'd0;
 
     // 例化 conv
     conv_3_3 convmodule(
@@ -241,11 +242,16 @@ module convnet(
             end 
             // FIRST_POOL
             FIRST_POOL:begin
-                next_state = FIRST_POOL;
+                if (idx_i > FIRST_POOL_BORDER) begin
+                    next_state = GATHER_KERNEL; // 从SDRAM读入第二层卷积的KERNEL
+                end
+                else begin
+                    next_state = GATHER_POOL;
+                end
             end 
             // SECOND_CONV
             SECOND_CONV:begin
-                
+                next_state = SECOND_CONV;
             end 
             // SECOND_POOL
             SECOND_POOL:begin
@@ -276,7 +282,12 @@ module convnet(
             end 
             // GATHER_POOL
             GATHER_POOL:begin
-                
+                if ((patch_idx == 4'd3)&&(gather_pool_cyc_cnt == 3'd3))begin
+                    next_state = MAXPOOL;
+                end
+                else begin
+                    next_state = GATHER_POOL;
+                end
             end 
             // CONV
             CONV:begin
@@ -294,7 +305,17 @@ module convnet(
             end 
             // MAXPOOL
             MAXPOOL:begin
-                
+                if(sdram_ack == 1'b1) begin
+                    if(LAYER == 1'b0)begin
+                        next_state = FIRST_POOL;
+                    end
+                    else begin
+                        next_state = SECOND_POOL;
+                    end
+                end
+                else begin
+                    next_state = MAXPOOL;
+                end                
             end 
             // WRITE_TO_USB
             WRITE_TO_USB:begin
@@ -386,6 +407,28 @@ module convnet(
                 convnet_sel_i=4'b0011;
                 convnet_addr_i= 32'd18+{27'd0,idx_i}*32'd10+{27'd0,idx_j};
             end
+            GATHER_POOL:begin
+                if(gather_pool_cyc_cnt == 3'd3)begin
+                    convnet_stb_i=1'b0;
+                    convnet_cyc_i=1'b0;
+                end
+                else begin
+                    convnet_stb_i=1'b1;
+                    convnet_cyc_i=1'b1;
+                end
+                convnet_data_i= 32'hz;
+                convnet_we_i=1'b0;
+                convnet_sel_i=4'b0011;
+                convnet_addr_i= 32'd18+({27'd0,idx_i} + {30'd0,pool_bias_i[patch_idx]})*32'd10+({27'd0,idx_j} + {30'd0,pool_bias_j[patch_idx]});
+            end
+            MAXPOOL:begin
+                convnet_stb_i=1'b1;
+                convnet_cyc_i=1'b1;
+                convnet_data_i= {16'd0, POOL_RESULT};
+                convnet_we_i=1'b1;
+                convnet_sel_i=4'b0011;
+                convnet_addr_i= 32'd18+{28'd0,idx_i[4:1]}*32'd10+{28'd0,idx_j[4:1]};// 相当于右移一位 
+            end
             default: begin
                 convnet_stb_i=1'b0;
                 convnet_cyc_i=1'b0;
@@ -423,6 +466,27 @@ module convnet(
                     patch_cyc_cnt <= patch_cyc_cnt+sdram_ack;
                 end
             end 
+            GATHER_POOL:begin
+                if(gather_pool_cyc_cnt == 3'd3)begin
+                    gather_pool_cyc_cnt <= 0;
+                    if (patch_idx == 4'd3)begin
+                        patch_idx <= 4'd0;
+                    end
+                    else begin
+                        patch_idx <= patch_idx + 4'd1;
+                    end
+                end
+                else begin
+                    gather_pool_cyc_cnt <= gather_pool_cyc_cnt+sdram_ack;
+                end
+            end 
+            FIRST_POOL: begin
+                if(next_state == GATHER_KERNEL) begin
+                    kernel_idx <= 5'd0;
+                    kernel_bias <= 5'd9;
+                    LAYER <= 1'd1;
+                end
+            end
             default: begin
                 
             end
@@ -439,6 +503,11 @@ module convnet(
             end
             GATHER_PATCH:begin
                 if(patch_cyc_cnt == 3'd1) begin
+                    PATCHES[patch_idx[3:0]] <= data_o[15:0];
+                end
+            end
+            GATHER_POOL:begin
+                if(gather_pool_cyc_cnt == 3'd1) begin
                     PATCHES[patch_idx[3:0]] <= data_o[15:0];
                 end
             end
@@ -463,6 +532,25 @@ module convnet(
                 end
                 // TODO: else if (next_state == SECOND_CONV)
             end 
+            FIRST_CONV: begin
+                if(next_state == FIRST_POOL) begin
+                    // 重置 idx_i, idx_j 和 patch_idx
+                    idx_i <= 5'd0;
+                    idx_j <= 5'd0;
+                end
+            end
+            MAXPOOL: begin
+                if (next_state == FIRST_POOL) begin
+                    if(idx_j == FIRST_POOL_BORDER) begin
+                        idx_i <= idx_i + 5'd2;
+                        idx_j <= 5'd0;
+                    end
+                    else begin
+                        idx_j <= idx_j + 5'd2;
+                    end
+                end
+                // TODO: else if (next_state == SECOND_POOL)
+            end
             default: begin
                 
             end
