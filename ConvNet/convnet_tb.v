@@ -105,28 +105,31 @@ module convnet_tb;
         endcase
     end
 
-    // sdram 输出信号
     always @(posedge CLK) begin
+        if((we_i == 1'b1)&&(sdram_cnt == 2'd3)) begin
+            sdram[addr_i[6:0]] <= data_i;
+        end
+    end
+
+    // sdram 输出信号
+    always @(*) begin
         case (s_current)
             S_STB:begin
-                if((we_i == 1'b1)&&(sdram_cnt == 2'd3)) begin
-                    sdram[addr_i[6:0]] <= data_i;
-                end
-                data_o <= 32'hz;
-                sdram_ack <= 1'b0;
-                stall_o <= 1'b0;
+                data_o = 32'hz;
+                sdram_ack = 1'b0;
+                stall_o = 1'b0;
             end 
             S_ACK:begin
                 if(we_i == 1'b0)begin
-                    data_o <= sdram[addr_i[6:0]];
+                    data_o = sdram[addr_i[6:0]];
                 end
-                sdram_ack <= 1'b1;
-                stall_o <= 1'b0;
+                sdram_ack = 1'b1;
+                stall_o = 1'b0;
             end
             default: begin
-                data_o <= 32'hz;
-                sdram_ack <= 1'b0;
-                stall_o <= 1'b0;
+                data_o = 32'hz;
+                sdram_ack = 1'b0;
+                stall_o = 1'b0;
             end
         endcase
     end
