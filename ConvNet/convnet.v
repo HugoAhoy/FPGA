@@ -47,10 +47,10 @@ module convnet(
     // localparam WRITE_DATA = 4'b1000;
 
     // 定义idx边界
-    localparam FIRST_CONV_BORDER = 5'd8;
-    localparam SECOND_CONV_BORDER = 5'd2;
-    localparam FIRST_POOL_BORDER = 5'd8;
-    localparam SECOND_POOL_BORDER = 5'd2;
+    localparam FIRST_CONV_BORDER = 5'd7;
+    localparam SECOND_CONV_BORDER = 5'd1;
+    localparam FIRST_POOL_BORDER = 5'd6;
+    localparam SECOND_POOL_BORDER = 5'd0;
 
     // 卷积bias
     reg [1:0] conv_bias_i[8:0];
@@ -232,7 +232,7 @@ module convnet(
             end
             // FIRST_CONV
             FIRST_CONV:begin
-                if ((idx_i == FIRST_CONV_BORDER)&&(idx_j == FIRST_CONV_BORDER))begin
+                if (idx_i > FIRST_CONV_BORDER) begin
                     next_state = FIRST_POOL;
                 end
                 else begin
@@ -241,7 +241,7 @@ module convnet(
             end 
             // FIRST_POOL
             FIRST_POOL:begin
-                
+                next_state = FIRST_POOL;
             end 
             // SECOND_CONV
             SECOND_CONV:begin
@@ -280,7 +280,17 @@ module convnet(
             end 
             // CONV
             CONV:begin
-                next_state = CONV;
+                if(sdram_ack == 1'b1) begin
+                    if(LAYER == 1'b0)begin
+                        next_state = FIRST_CONV;
+                    end
+                    else begin
+                        next_state = SECOND_CONV;
+                    end
+                end
+                else begin
+                    next_state = CONV;
+                end
             end 
             // MAXPOOL
             MAXPOOL:begin
@@ -368,6 +378,14 @@ module convnet(
                 convnet_sel_i=4'b0011;
                 convnet_addr_i= 32'd18+({27'd0,idx_i} + {30'd0,conv_bias_i[patch_idx]})*32'd10+({27'd0,idx_j} + {30'd0,conv_bias_j[patch_idx]});
             end
+            CONV:begin
+                convnet_stb_i=1'b1;
+                convnet_cyc_i=1'b1;
+                convnet_data_i= {16'd0, CONV_RESULT};
+                convnet_we_i=1'b1;
+                convnet_sel_i=4'b0011;
+                convnet_addr_i= 32'd18+{27'd0,idx_i}*32'd10+{27'd0,idx_j};
+            end
             default: begin
                 convnet_stb_i=1'b0;
                 convnet_cyc_i=1'b0;
@@ -411,6 +429,7 @@ module convnet(
         endcase
     end
 
+    // 数据IO
     always @(posedge CLK) begin
         case (current_state)
             GATHER_KERNEL: begin
@@ -429,5 +448,25 @@ module convnet(
         endcase
     end
 
-    // 
+    // 控制图片左上角位置
+    always @(posedge CLK) begin
+        case (current_state)
+            CONV: begin
+                if (next_state == FIRST_CONV) begin
+                    if(idx_j == FIRST_CONV_BORDER) begin
+                        idx_i <= idx_i + 5'd1;
+                        idx_j <= 5'd0;
+                    end
+                    else begin
+                        idx_j <= idx_j + 5'd1;
+                    end
+                end
+                // TODO: else if (next_state == SECOND_CONV)
+            end 
+            default: begin
+                
+            end
+        endcase
+    end
+
 endmodule
