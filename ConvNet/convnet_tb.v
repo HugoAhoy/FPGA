@@ -205,6 +205,12 @@ module convnet_tb;
         else begin
             FLAGA = 1'b1;
         end
+        if (FIFOADR == 2'b01) begin
+            FLAGD = 1'b1;
+        end
+        else begin
+            FLAGD = 1'b0;
+        end
     end
 
 endmodule
