@@ -40,8 +40,10 @@ module convnet(
 
     localparam CONV = 4'b1000;
     localparam MAXPOOL = 4'b1001;
-    localparam WRITE_TO_USB = 4'b1010;
-    localparam END = 4'b1011;
+    localparam SELECT_WRITE_FIFO = 4'b1010;
+    localparam WRITE_TO_USB = 4'b1011;
+    localparam PKTEND = 4'b1100;
+    localparam END = 4'b1101;
     // localparam READ_IDLE = 4'b0110;
     // localparam READ_DATA = 4'b0111;
     // localparam WRITE_IDLE = 4'b1000;
@@ -147,7 +149,7 @@ module convnet(
     reg out_sloe;
     reg out_slwr;
     reg [1:0] out_fifoadr;
-    reg [15:0] out_fdata;
+    reg out_pktend = 1'b1;
 
     // 最终输出的与 sdram 相关的输出信号
     reg [31:0] out_data_i;
@@ -162,7 +164,8 @@ module convnet(
     assign SLOE = out_sloe;
     assign SLWR = out_slwr;
     assign FIFOADR = out_fifoadr;
-    assign FDATA = (current_state == READ_TO_SDRAM)? 16'hz:out_fdata;
+    assign FDATA = (FLAGD == 1'b1 & (current_state == SELECT_WRITE_FIFO| current_state == WRITE_TO_USB))? POOL_RESULT:16'hzzzz;
+    assign pktend = out_pktend;
 
     // 将out_sdram输出连接到输出引脚
     assign data_i = out_data_i;
@@ -262,7 +265,7 @@ module convnet(
             // SECOND_POOL
             SECOND_POOL:begin
                 if (idx_i > SECOND_POOL_BORDER) begin
-                    next_state = WRITE_TO_USB; // 将结果写回USB
+                    next_state = SELECT_WRITE_FIFO; // 将结果写回USB
                 end
                 else begin
                     next_state = GATHER_POOL;
@@ -279,7 +282,7 @@ module convnet(
             end 
             // GATHER_KERNEL
             GATHER_KERNEL:begin
-                if ((kernel_idx == 4'd8)&&(kernel_cyc_cnt == 3'd3))begin
+                if ((kernel_idx == 5'd8)&&(kernel_cyc_cnt == 3'd3))begin
                     if(LAYER == 1'b0)begin
                         next_state = FIRST_CONV;
                     end
@@ -328,12 +331,34 @@ module convnet(
                     next_state = MAXPOOL;
                 end                
             end 
+            // SELECT_WRITE_FIFO
+            SELECT_WRITE_FIFO:begin
+                if (FLAGD == 1'b1)begin
+                    next_state = WRITE_TO_USB;
+                end
+                else begin
+                    next_state = SELECT_WRITE_FIFO;
+                end
+            end
             // WRITE_TO_USB
             WRITE_TO_USB:begin
-                next_state = WRITE_TO_USB;
+                if (FLAGD == 1'b0) begin
+                    next_state = WRITE_TO_USB;
+                end
+                else begin
+                    next_state = PKTEND;
+                end
             end 
+            // PKTEND
+            PKTEND: begin
+                next_state = END;
+            end
+            // END
+            END: begin
+                next_state = END;
+            end
             default: begin
-
+                next_state = END;
             end
         endcase
     end
@@ -447,6 +472,40 @@ module convnet(
                 convnet_we_i=1'b0;
                 convnet_sel_i=4'b0000;
                 convnet_addr_i= 32'd0;
+            end
+        endcase
+    end
+
+    // usb信号
+    always @(*) begin
+        case (current_state)
+            SELECT_WRITE_FIFO:begin
+                convnet_fifoadr = 2'b01;
+                convnet_slwr = 1'b1;
+                convnet_slrd = 1'b1;
+                convnet_sloe = 1'b1;
+                out_pktend = 1'b1;
+            end
+            WRITE_TO_USB:begin
+                convnet_fifoadr = 2'b01;
+                convnet_slwr = ~FLAGD;
+                convnet_slrd = 1'b1;
+                convnet_sloe = 1'b1;
+                out_pktend = 1'b1;
+            end
+            PKTEND: begin
+                convnet_fifoadr = 2'b01;
+                convnet_slwr = 1'b1;
+                convnet_slrd = 1'b1;
+                convnet_sloe = 1'b1;
+                out_pktend = 1'b0;
+            end
+            default: begin
+                convnet_fifoadr = 2'b01;
+                convnet_slwr = 1'b1;
+                convnet_slrd = 1'b1;
+                convnet_sloe = 1'b1;
+                out_pktend = 1'b1;
             end
         endcase
     end
