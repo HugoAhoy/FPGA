@@ -50,7 +50,7 @@ module read_to_sdram_tb;
     reg [3:0] s_current = S_WAIT;
 
     // 状态转移
-    always @(posedge CLK) begin
+    always @(posedge CLKOUT) begin
         case (s_current)
             S_WAIT:begin
                 if(cyc_i == 1'b1)begin
