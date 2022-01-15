@@ -42,7 +42,7 @@ module convnet_tb;
     reg [15:0] cnt = 0;
     reg [15:0] data_cnt = 0;
 
-    assign FDATA = (FLAGA == 1'b1) ? data_cnt:16'hz;
+    assign FDATA = (FLAGA == 1'b1 && FIFOADR == 2'b00) ? data_cnt:16'hz;
 
     // pseudo sdram start
     reg [1:0] sdram_cnt = 2'd0;
